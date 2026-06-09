@@ -66,7 +66,7 @@ def load_random_command():
     if commands:
         return random.choice(commands)
 
-    return "Have a productive day, James."
+    return "Fuck you, James"
 
 
 def load_nick_list():
