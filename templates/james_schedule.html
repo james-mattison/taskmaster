@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>James' Schedule</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #eef2ff, #f8fafc);
+      min-height: 100vh;
+    }
+
+    .schedule-card {
+      border: 0;
+      border-radius: 1.5rem;
+      box-shadow: 0 1rem 2rem rgba(0,0,0,0.12);
+      overflow: hidden;
+    }
+
+    .section-card {
+      border-radius: 1rem;
+    }
+
+    .nick-list {
+      background: #fff;
+      border-radius: 1rem;
+    }
+  </style>
+</head>
+
+<body>
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-9">
+
+      <div class="card schedule-card">
+        <div class="card-header bg-primary text-white p-4">
+          <h1 class="mb-1">Heil Hitler!</h1>
+          <p class="mb-0 fs-5">These are the things I must do {{ today }}</p>
+        </div>
+
+        <div class="card-body p-4">
+
+          <div class="card section-card mb-4">
+            <div class="card-header bg-danger text-white">
+              <h2 class="h4 mb-0">Urgent Things to Do Today</h2>
+            </div>
+
+            <div class="card-body">
+              <form method="post" action="/tasks/urgent" class="d-flex gap-2 mb-4">
+                <input name="task" class="form-control form-control-lg" placeholder="Add an urgent task" required>
+                <button class="btn btn-danger btn-lg" type="submit">Add</button>
+              </form>
+
+              <ul class="list-group">
+                {% for item in urgent_tasks %}
+                <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                  <span><span class="badge text-bg-danger me-2">{{ loop.index }}</span>{{ item }}</span>
+                  <div class="btn-group">
+                    <form method="post" action="/tasks/urgent/{{ loop.index0 }}/complete">
+                      <button class="btn btn-outline-success btn-sm" type="submit">Done</button>
+                    </form>
+                    <button class="btn btn-outline-danger btn-sm" onclick="deleteTask('urgent', {{ loop.index0 }})">Delete</button>
+                  </div>
+                </li>
+                {% else %}
+                <li class="list-group-item text-muted">No urgent tasks.</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+
+          <div class="card section-card mb-4">
+            <div class="card-header bg-white">
+              <h2 class="h4 mb-0">Things That Should Be Done But Don’t Have to Be Done Today</h2>
+            </div>
+
+            <div class="card-body">
+              <form method="post" action="/tasks/tasks" class="d-flex gap-2 mb-4">
+                <input name="task" class="form-control form-control-lg" placeholder="Add a task for later" required>
+                <button class="btn btn-secondary btn-lg" type="submit">Add</button>
+              </form>
+
+              <ul class="list-group">
+                {% for item in tasks %}
+                <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                  <span><span class="badge text-bg-secondary me-2">{{ loop.index }}</span>{{ item }}</span>
+                  <div class="btn-group">
+                    <form method="post" action="/tasks/tasks/{{ loop.index0 }}/complete">
+                      <button class="btn btn-outline-success btn-sm" type="submit">Done</button>
+                    </form>
+                    <button class="btn btn-outline-danger btn-sm" onclick="deleteTask('tasks', {{ loop.index0 }})">Delete</button>
+                  </div>
+                </li>
+                {% else %}
+                <li class="list-group-item text-muted">No later tasks.</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+
+          <div class="dropdown mb-4">
+            <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Tasks Completed
+            </button>
+
+            <div class="dropdown-menu p-3 shadow" style="min-width: 100%; max-height: 420px; overflow-y: auto;">
+              <h3 class="h5 mb-3">Completed Tasks</h3>
+
+              {% if completed_tasks %}
+              <ul class="list-group">
+                {% for item in completed_tasks %}
+                <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                  <span><span class="badge text-bg-success me-2">{{ loop.index }}</span>{{ item }}</span>
+                  <div class="btn-group">
+                    <form method="post" action="/tasks/completed/{{ loop.index0 }}/restore">
+                      <button class="btn btn-outline-primary btn-sm" type="submit">Restore</button>
+                    </form>
+                    <button class="btn btn-outline-danger btn-sm" onclick="deleteTask('completed', {{ loop.index0 }})">Delete</button>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <p class="text-muted mb-0">No completed tasks yet.</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="nick-list p-4 border">
+            <h2 class="h4 mb-3">Things I Have Done for Nick Cole and Want Him to Be Aware Of</h2>
+
+            {% if nick_list %}
+            <ul class="list-group list-group-flush">
+              {% for item in nick_list %}
+              <li class="list-group-item">{{ item }}</li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted mb-0">No Nick Cole awareness items found.</p>
+            {% endif %}
+          </div>
+
+        </div>
+
+        <div class="card-footer text-muted text-center py-3">
+          {{ command }}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+async function deleteTask(listName, index) {
+  await fetch(`/tasks/${listName}/${index}`, { method: "DELETE" });
+  window.location.reload();
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
