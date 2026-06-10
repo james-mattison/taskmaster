@@ -1,78 +1,46 @@
-# James Schedule App v5
+# James Schedule App v7
 
-Dockerized Flask + Bootstrap scheduler for `taskmaster.vixal.net`.
+This version uses your supplied YAML files exactly as the seed data:
 
-## Features
+```text
+seed-taskmaster/tasks.yaml
+seed-taskmaster/completed.yaml
+seed-taskmaster/urgent.yaml
+```
 
-- Secured with HTTP Basic Auth using `/taskmaster/.htpasswd`
-- Urgent tasks backed by `/taskmaster/urgent.yaml`
-- Later tasks backed by `/taskmaster/tasks.yaml`
-- Completed tasks backed by `/taskmaster/completed.yaml`
-- Completed section is hidden by default and available from a Bootstrap dropdown
-- Tasks can be added with POST forms
-- Tasks can be deleted with DELETE requests
-- Tasks can be marked done and moved to completed
-- Completed tasks can be restored to the later-task list
-- Nick Cole awareness list at the bottom of the page
-- Random footer messages from `commands.yaml`
-- Flask SSL context using Certbot certificates for `taskmaster.vixal.net`
-- Deployment helper script: `deploy-taskmaster.sh`
+The deploy script copies them into `/taskmaster` only if the corresponding host file is missing. It does not rewrite existing `/taskmaster/*.yaml` files.
 
-## Install htpasswd tool
+## Behavior
 
-On Ubuntu/Debian:
+- `urgent.yaml` displays as urgent tasks.
+- `tasks.yaml` displays as medium-term tasks.
+- `completed.yaml` displays as **Things I Have Already Done and Want Nick Cole to Know About**.
+- Clicking **Done** on an urgent task moves it from `urgent.yaml` to `completed.yaml`.
+- Clicking **Done** on a medium-term task moves it from `tasks.yaml` to `completed.yaml`.
+- Footer says: `fuck you james`.
+- HTTP Basic Auth uses `/taskmaster/.htpasswd`.
+- TLS uses Certbot certs for `taskmaster.vixal.net`.
+
+## htpasswd
+
+Install:
 
 ```bash
 sudo apt update
 sudo apt install apache2-utils
 ```
 
-## Create the first user
-
-The `-c` flag creates the file. Use it only for the first user.
+Create first user:
 
 ```bash
 sudo mkdir -p /taskmaster
 sudo htpasswd -c -B /taskmaster/.htpasswd james
 ```
 
-## Add another user
-
-Do not use `-c` when adding additional users, or you will overwrite the file.
+Add another user:
 
 ```bash
 sudo htpasswd -B /taskmaster/.htpasswd nick
-```
-
-## Change an existing user's password
-
-```bash
-sudo htpasswd -B /taskmaster/.htpasswd james
-```
-
-## Delete a user
-
-```bash
-sudo htpasswd -D /taskmaster/.htpasswd nick
-```
-
-## Show configured users
-
-```bash
-sudo cut -d: -f1 /taskmaster/.htpasswd
-```
-
-## Permissions
-
-```bash
-sudo chown root:root /taskmaster/.htpasswd
-sudo chmod 640 /taskmaster/.htpasswd
-```
-
-If Docker cannot read it due to permissions, use:
-
-```bash
-sudo chmod 644 /taskmaster/.htpasswd
 ```
 
 ## Deploy
@@ -80,4 +48,22 @@ sudo chmod 644 /taskmaster/.htpasswd
 ```bash
 chmod +x deploy-taskmaster.sh
 ./deploy-taskmaster.sh
+```
+
+Then visit:
+
+```text
+https://taskmaster.vixal.net
+```
+
+## Force replacing host YAMLs with the supplied versions
+
+The deploy script does not overwrite existing `/taskmaster/*.yaml`.
+
+If you want to replace them manually:
+
+```bash
+sudo cp seed-taskmaster/tasks.yaml /taskmaster/tasks.yaml
+sudo cp seed-taskmaster/completed.yaml /taskmaster/completed.yaml
+sudo cp seed-taskmaster/urgent.yaml /taskmaster/urgent.yaml
 ```

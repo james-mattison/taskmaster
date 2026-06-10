@@ -24,9 +24,8 @@
       border-radius: 1rem;
     }
 
-    .nick-list {
-      background: #fff;
-      border-radius: 1rem;
+    .btn-group form {
+      display: inline;
     }
   </style>
 </head>
@@ -38,8 +37,8 @@
 
       <div class="card schedule-card">
         <div class="card-header bg-primary text-white p-4">
-          <h1 class="mb-1">Heil Hitler!</h1>
-          <p class="mb-0 fs-5">These are the things I must do {{ today }}</p>
+          <h1 class="mb-1">James' Schedule</h1>
+          <p class="mb-0 fs-5">For {{ today }}</p>
         </div>
 
         <div class="card-body p-4">
@@ -51,23 +50,45 @@
 
             <div class="card-body">
               <form method="post" action="/tasks/urgent" class="d-flex gap-2 mb-4">
-                <input name="task" class="form-control form-control-lg" placeholder="Add an urgent task" required>
-                <button class="btn btn-danger btn-lg" type="submit">Add</button>
+                <input
+                  name="task"
+                  class="form-control form-control-lg"
+                  placeholder="Add an urgent task"
+                  required>
+
+                <button class="btn btn-danger btn-lg" type="submit">
+                  Add
+                </button>
               </form>
 
               <ul class="list-group">
                 {% for item in urgent_tasks %}
                 <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
-                  <span><span class="badge text-bg-danger me-2">{{ loop.index }}</span>{{ item }}</span>
+                  <span>
+                    <span class="badge text-bg-danger me-2">
+                      {{ loop.index }}
+                    </span>
+                    {{ item }}
+                  </span>
+
                   <div class="btn-group">
                     <form method="post" action="/tasks/urgent/{{ loop.index0 }}/complete">
-                      <button class="btn btn-outline-success btn-sm" type="submit">Done</button>
+                      <button class="btn btn-outline-success btn-sm" type="submit">
+                        Done
+                      </button>
                     </form>
-                    <button class="btn btn-outline-danger btn-sm" onclick="deleteTask('urgent', {{ loop.index0 }})">Delete</button>
+
+                    <form method="post" action="/tasks/urgent/{{ loop.index0 }}/delete">
+                      <button class="btn btn-outline-danger btn-sm" type="submit">
+                        Delete
+                      </button>
+                    </form>
                   </div>
                 </li>
                 {% else %}
-                <li class="list-group-item text-muted">No urgent tasks.</li>
+                <li class="list-group-item text-muted">
+                  No urgent tasks.
+                </li>
                 {% endfor %}
               </ul>
             </div>
@@ -75,73 +96,114 @@
 
           <div class="card section-card mb-4">
             <div class="card-header bg-white">
-              <h2 class="h4 mb-0">Things That Should Be Done But Don’t Have to Be Done Today</h2>
+              <h2 class="h4 mb-0">
+                Things That Should Be Done But Don’t Have to Be Done Today
+              </h2>
             </div>
 
             <div class="card-body">
               <form method="post" action="/tasks/tasks" class="d-flex gap-2 mb-4">
-                <input name="task" class="form-control form-control-lg" placeholder="Add a task for later" required>
-                <button class="btn btn-secondary btn-lg" type="submit">Add</button>
+                <input
+                  name="task"
+                  class="form-control form-control-lg"
+                  placeholder="Add a medium-term task"
+                  required>
+
+                <button class="btn btn-secondary btn-lg" type="submit">
+                  Add
+                </button>
               </form>
 
               <ul class="list-group">
                 {% for item in tasks %}
                 <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
-                  <span><span class="badge text-bg-secondary me-2">{{ loop.index }}</span>{{ item }}</span>
+                  <span>
+                    <span class="badge text-bg-secondary me-2">
+                      {{ loop.index }}
+                    </span>
+                    {{ item }}
+                  </span>
+
                   <div class="btn-group">
                     <form method="post" action="/tasks/tasks/{{ loop.index0 }}/complete">
-                      <button class="btn btn-outline-success btn-sm" type="submit">Done</button>
+                      <button class="btn btn-outline-success btn-sm" type="submit">
+                        Done
+                      </button>
                     </form>
-                    <button class="btn btn-outline-danger btn-sm" onclick="deleteTask('tasks', {{ loop.index0 }})">Delete</button>
+
+                    <form method="post" action="/tasks/tasks/{{ loop.index0 }}/delete">
+                      <button class="btn btn-outline-danger btn-sm" type="submit">
+                        Delete
+                      </button>
+                    </form>
                   </div>
                 </li>
                 {% else %}
-                <li class="list-group-item text-muted">No later tasks.</li>
+                <li class="list-group-item text-muted">
+                  No medium-term tasks.
+                </li>
                 {% endfor %}
               </ul>
             </div>
           </div>
 
-          <div class="dropdown mb-4">
-            <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              Tasks Completed
-            </button>
+          <div class="card section-card mb-4">
+            <div class="card-header bg-success text-white">
+              <h2 class="h4 mb-0">
+                Things I Have Already Done and Want Nick Cole to Know About
+              </h2>
+            </div>
 
-            <div class="dropdown-menu p-3 shadow" style="min-width: 100%; max-height: 420px; overflow-y: auto;">
-              <h3 class="h5 mb-3">Completed Tasks</h3>
+            <div class="card-body">
+              <p class="text-muted small mb-3">
+                When an urgent or medium-term task is marked Done, it moves here.
+              </p>
+
+              <form method="post" action="/tasks/completed" class="d-flex gap-2 mb-4">
+                <input
+                  name="task"
+                  class="form-control"
+                  placeholder="Add something already done"
+                  required>
+
+                <button class="btn btn-success" type="submit">
+                  Add
+                </button>
+              </form>
 
               {% if completed_tasks %}
               <ul class="list-group">
                 {% for item in completed_tasks %}
                 <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
-                  <span><span class="badge text-bg-success me-2">{{ loop.index }}</span>{{ item }}</span>
+                  <span>
+                    <span class="badge text-bg-success me-2">
+                      {{ loop.index }}
+                    </span>
+                    {{ item }}
+                  </span>
+
                   <div class="btn-group">
                     <form method="post" action="/tasks/completed/{{ loop.index0 }}/restore">
-                      <button class="btn btn-outline-primary btn-sm" type="submit">Restore</button>
+                      <button class="btn btn-outline-primary btn-sm" type="submit">
+                        Restore
+                      </button>
                     </form>
-                    <button class="btn btn-outline-danger btn-sm" onclick="deleteTask('completed', {{ loop.index0 }})">Delete</button>
+
+                    <form method="post" action="/tasks/completed/{{ loop.index0 }}/delete">
+                      <button class="btn btn-outline-danger btn-sm" type="submit">
+                        Delete
+                      </button>
+                    </form>
                   </div>
                 </li>
                 {% endfor %}
               </ul>
               {% else %}
-              <p class="text-muted mb-0">No completed tasks yet.</p>
+              <p class="text-muted mb-0">
+                No completed/Nick Cole awareness items yet.
+              </p>
               {% endif %}
             </div>
-          </div>
-
-          <div class="nick-list p-4 border">
-            <h2 class="h4 mb-3">Things I Have Done for Nick Cole and Want Him to Be Aware Of</h2>
-
-            {% if nick_list %}
-            <ul class="list-group list-group-flush">
-              {% for item in nick_list %}
-              <li class="list-group-item">{{ item }}</li>
-              {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-muted mb-0">No Nick Cole awareness items found.</p>
-            {% endif %}
           </div>
 
         </div>
@@ -154,13 +216,6 @@
     </div>
   </div>
 </div>
-
-<script>
-async function deleteTask(listName, index) {
-  await fetch(`/tasks/${listName}/${index}`, { method: "DELETE" });
-  window.location.reload();
-}
-</script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 

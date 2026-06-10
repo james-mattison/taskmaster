@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, jsonify, Response
 from pathlib import Path
 from passlib.apache import HtpasswdFile
-import random
 import yaml
 
 app = Flask(__name__)
@@ -12,30 +11,16 @@ COMPLETED_FILE = DATA_DIR / "completed.yaml"
 URGENT_FILE = DATA_DIR / "urgent.yaml"
 HTPASSWD_FILE = DATA_DIR / ".htpasswd"
 
-NICK_FILE = Path("nc_awareness.yaml")
-COMMANDS_FILE = Path("commands.yaml")
-
 
 def ensure_data_files():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-    defaults = {
-        URGENT_FILE: [
-            "Drink coffee",
-            "Check email",
-            "Work on Frame Analytics"
-        ],
-        TASKS_FILE: [
-            "Buy more scent-free clothes",
-            "Review VOC detector options",
-            "Organize notes for Nick Cole"
-        ],
-        COMPLETED_FILE: []
-    }
-
-    for path, default_items in defaults.items():
+    # Do not seed or modify YAML contents here.
+    # deploy-taskmaster.sh installs the user's supplied YAMLs into /taskmaster
+    # only if the files are missing.
+    for path in [TASKS_FILE, COMPLETED_FILE, URGENT_FILE]:
         if not path.exists():
-            save_list(path, default_items)
+            save_list(path, [])
 
 
 def load_list(path):
@@ -56,28 +41,23 @@ def load_list(path):
 
 def save_list(path, items):
     path.parent.mkdir(parents=True, exist_ok=True)
+
     with open(path, "w") as f:
-        yaml.safe_dump(items, f, default_flow_style=False, sort_keys=False)
-
-
-def load_random_command():
-    commands = load_list(COMMANDS_FILE)
-
-    if commands:
-        return random.choice(commands)
-
-    return "Fuck you, James"
-
-
-def load_nick_list():
-    return load_list(NICK_FILE)
+        yaml.safe_dump(
+            items,
+            f,
+            default_flow_style=False,
+            sort_keys=False
+        )
 
 
 def get_list_by_name(list_name):
     if list_name == "urgent":
         return URGENT_FILE
+
     if list_name == "tasks":
         return TASKS_FILE
+
     if list_name == "completed":
         return COMPLETED_FILE
 
@@ -86,11 +66,9 @@ def get_list_by_name(list_name):
 
 def auth_required():
     return Response(
-        "Authentication required\\n",
+        "Authentication required\n",
         401,
-        {
-            "WWW-Authenticate": 'Basic realm="Taskmaster"'
-        }
+        {"WWW-Authenticate": 'Basic realm="Taskmaster"'}
     )
 
 
@@ -109,7 +87,6 @@ def check_auth(username, password):
 def before_request():
     ensure_data_files()
 
-    # Health checks stay unauthenticated for container monitoring.
     if request.path == "/healthz":
         return None
 
@@ -129,8 +106,7 @@ def schedule():
         urgent_tasks=load_list(URGENT_FILE),
         tasks=load_list(TASKS_FILE),
         completed_tasks=load_list(COMPLETED_FILE),
-        nick_list=load_nick_list(),
-        command=load_random_command()
+        command="fuck you james"
     )
 
 
@@ -139,9 +115,13 @@ def add_task(list_name):
     path = get_list_by_name(list_name)
 
     if path is None:
-        return jsonify({"status": "error", "message": "Unknown list"}), 404
+        return jsonify({
+            "status": "error",
+            "message": "Unknown list"
+        }), 404
 
     task = request.form.get("task")
+
     if task and task.strip():
         items = load_list(path)
         items.append(task.strip())
@@ -155,7 +135,10 @@ def delete_task(list_name, index):
     path = get_list_by_name(list_name)
 
     if path is None:
-        return jsonify({"status": "error", "message": "Unknown list"}), 404
+        return jsonify({
+            "status": "error",
+            "message": "Unknown list"
+        }), 404
 
     items = load_list(path)
 
@@ -163,22 +146,48 @@ def delete_task(list_name, index):
         items.pop(index)
         save_list(path, items)
 
-    return jsonify({"status": "ok", "tasks": items})
+    return jsonify({
+        "status": "ok",
+        "tasks": items
+    })
+
+
+@app.post("/tasks/<list_name>/<int:index>/delete")
+def delete_task_post(list_name, index):
+    path = get_list_by_name(list_name)
+
+    if path is None:
+        return jsonify({
+            "status": "error",
+            "message": "Unknown list"
+        }), 404
+
+    items = load_list(path)
+
+    if 0 <= index < len(items):
+        items.pop(index)
+        save_list(path, items)
+
+    return redirect("/")
 
 
 @app.post("/tasks/<list_name>/<int:index>/complete")
 def complete_task(list_name, index):
-    path = get_list_by_name(list_name)
+    # Completing either urgent or medium-term tasks moves the item into completed.yaml,
+    # displayed as "Things I Have Already Done and Want Nick Cole to Know About."
+    if list_name not in ["urgent", "tasks"]:
+        return jsonify({
+            "status": "error",
+            "message": "Only urgent or medium-term tasks can be completed"
+        }), 404
 
-    if path is None or list_name == "completed":
-        return jsonify({"status": "error", "message": "Unknown or invalid list"}), 404
-
-    items = load_list(path)
+    source_path = get_list_by_name(list_name)
+    source_items = load_list(source_path)
     completed_items = load_list(COMPLETED_FILE)
 
-    if 0 <= index < len(items):
-        completed_items.append(items.pop(index))
-        save_list(path, items)
+    if 0 <= index < len(source_items):
+        completed_items.append(source_items.pop(index))
+        save_list(source_path, source_items)
         save_list(COMPLETED_FILE, completed_items)
 
     return redirect("/")
