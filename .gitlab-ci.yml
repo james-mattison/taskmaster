@@ -1,0 +1,43 @@
+stages:
+  - deploy
+
+deploy_taskmaster:
+  stage: deploy
+  image: alpine:latest
+
+  before_script:
+    - apk add --no-cache openssh-client rsync bash
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+
+    # SSH_PRIVATE_KEY should be configured in GitLab:
+    # Settings → CI/CD → Variables → SSH_PRIVATE_KEY
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+
+    # Avoid interactive host-key prompt.
+    # Since your SSH target is named "taskmaster", this should resolve from the runner.
+    - ssh-keyscan -H taskmaster >> ~/.ssh/known_hosts
+
+  script:
+    - echo "Deploying Taskmaster to taskmaster..."
+
+    # Copy repo contents to the host.
+    - rsync -az --delete
+      --exclude ".git"
+      --exclude ".gitlab-ci.yml"
+      ./ taskmaster:/opt/taskmaster/
+
+    # Build and restart on the target host.
+    - ssh taskmaster '
+        set -euo pipefail;
+
+        cd /opt/taskmaster;
+
+        chmod +x deploy-taskmaster.sh;
+
+        ./deploy-taskmaster.sh;
+      '
+
+  only:
+    - main

@@ -16,8 +16,8 @@ def ensure_data_files():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     # Do not seed or modify YAML contents here.
-    # deploy-taskmaster.sh installs the user's supplied YAMLs into /taskmaster
-    # only if the files are missing.
+    # deploy-taskmaster.sh is responsible for installing the user's supplied YAMLs
+    # into /taskmaster if the files are missing.
     for path in [TASKS_FILE, COMPLETED_FILE, URGENT_FILE]:
         if not path.exists():
             save_list(path, [])
@@ -41,23 +41,15 @@ def load_list(path):
 
 def save_list(path, items):
     path.parent.mkdir(parents=True, exist_ok=True)
-
     with open(path, "w") as f:
-        yaml.safe_dump(
-            items,
-            f,
-            default_flow_style=False,
-            sort_keys=False
-        )
+        yaml.safe_dump(items, f, default_flow_style=False, sort_keys=False)
 
 
 def get_list_by_name(list_name):
     if list_name == "urgent":
         return URGENT_FILE
-
     if list_name == "tasks":
         return TASKS_FILE
-
     if list_name == "completed":
         return COMPLETED_FILE
 
@@ -115,13 +107,9 @@ def add_task(list_name):
     path = get_list_by_name(list_name)
 
     if path is None:
-        return jsonify({
-            "status": "error",
-            "message": "Unknown list"
-        }), 404
+        return jsonify({"status": "error", "message": "Unknown list"}), 404
 
     task = request.form.get("task")
-
     if task and task.strip():
         items = load_list(path)
         items.append(task.strip())
@@ -135,10 +123,7 @@ def delete_task(list_name, index):
     path = get_list_by_name(list_name)
 
     if path is None:
-        return jsonify({
-            "status": "error",
-            "message": "Unknown list"
-        }), 404
+        return jsonify({"status": "error", "message": "Unknown list"}), 404
 
     items = load_list(path)
 
@@ -146,40 +131,15 @@ def delete_task(list_name, index):
         items.pop(index)
         save_list(path, items)
 
-    return jsonify({
-        "status": "ok",
-        "tasks": items
-    })
-
-
-@app.post("/tasks/<list_name>/<int:index>/delete")
-def delete_task_post(list_name, index):
-    path = get_list_by_name(list_name)
-
-    if path is None:
-        return jsonify({
-            "status": "error",
-            "message": "Unknown list"
-        }), 404
-
-    items = load_list(path)
-
-    if 0 <= index < len(items):
-        items.pop(index)
-        save_list(path, items)
-
-    return redirect("/")
+    return jsonify({"status": "ok", "tasks": items})
 
 
 @app.post("/tasks/<list_name>/<int:index>/complete")
 def complete_task(list_name, index):
     # Completing either urgent or medium-term tasks moves the item into completed.yaml,
-    # displayed as "Things I Have Already Done and Want Nick Cole to Know About."
+    # which is displayed as "Things I Have Already Done and Want Nick Cole to Know About."
     if list_name not in ["urgent", "tasks"]:
-        return jsonify({
-            "status": "error",
-            "message": "Only urgent or medium-term tasks can be completed"
-        }), 404
+        return jsonify({"status": "error", "message": "Only urgent or medium-term tasks can be completed"}), 404
 
     source_path = get_list_by_name(list_name)
     source_items = load_list(source_path)
