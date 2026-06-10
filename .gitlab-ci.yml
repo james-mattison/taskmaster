@@ -9,16 +9,9 @@ deploy_taskmaster:
     - apk add --no-cache openssh-client rsync bash
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-
-    # SSH_PRIVATE_KEY should be configured in GitLab:
-    # Settings → CI/CD → Variables → SSH_PRIVATE_KEY
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+    - cp "$SSH_PRIVATE_KEY" ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
-
-    # Avoid interactive host-key prompt.
-    # Since your SSH target is named "taskmaster", this should resolve from the runner.
     - ssh-keyscan -H taskmaster >> ~/.ssh/known_hosts
-
   script:
     - echo "Deploying Taskmaster to taskmaster..."
 
